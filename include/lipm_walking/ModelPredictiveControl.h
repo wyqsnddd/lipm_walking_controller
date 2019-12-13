@@ -53,17 +53,26 @@ namespace lipm_walking
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     static constexpr double SAMPLING_PERIOD = 0.1; // [s]
-    static constexpr unsigned INPUT_SIZE = 2; // input is 2D CoM jerk
+    static constexpr unsigned INPUT_SIZE = 2; // input is 2D ZMP velocity 
     static constexpr unsigned NB_STEPS = 16; // number of sampling steps
-    static constexpr unsigned STATE_SIZE = 6; // state is CoM [pos, vel, accel]
+    static constexpr unsigned STATE_SIZE = 6; // state is [CoM_pos, CoM_vel, ZMP_pos]
 
     using RefVec = Eigen::Matrix<double, 2 * (NB_STEPS + 1), 1>;
 
     /** Initialize new problem.
      *
+     * \param height of the COM
      */
-    ModelPredictiveControl();
+    ModelPredictiveControl(double height = 0.78);
 
+     
+    /*!
+     * \param A_d denotes the state matrix.
+     * \param B_d denotes the input matrix.
+     * \param height denotes the z component of the COM position.
+     */
+    void constructStateMatrix(Eigen::MatrixXd & A_d, Eigen::MatrixXd & B_d, double height)
+    
     /** Add GUI panel.
      *
      * \param gui GUI handle.
@@ -120,12 +129,25 @@ namespace lipm_walking
     {
       double zeta = height / world::GRAVITY;
       double omegaInv = std::sqrt(zeta);
+
       dcmFromState_ <<
         1, 0, omegaInv, 0, 0, 0,
         0, 1, 0, omegaInv, 0, 0;
+
       zmpFromState_ <<
-        1, 0, 0, 0, -zeta, 0,
-        0, 1, 0, 0, 0, -zeta;
+        0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 1;
+
+      // ------- Update the system matrices
+      Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> stateMatrix;
+      Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> inputMatrix;
+
+      constructStateMatrix(stateMatrix, inputMatrix, height);
+
+      previewSystem_->A = stateMatrix; 
+      previewSystem_->B = inputMatrix; 
+      previewSystem_->updateSystem();
+
     }
 
     /** Reset contacts.
@@ -152,10 +174,11 @@ namespace lipm_walking
     void initState(const Pendulum & pendulum)
     {
       initState_ = Eigen::VectorXd(STATE_SIZE);
+      // COM-Pos, COM-Vel, ZMP-Pos
       initState_ <<
         pendulum.com().head<2>(),
         pendulum.comd().head<2>(),
-        pendulum.comdd().head<2>();
+        pendulum.zmp().head<2>();
     }
 
     /** Get solution vector.

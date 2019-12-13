@@ -41,33 +41,45 @@ namespace lipm_walking
   constexpr unsigned ModelPredictiveControl::NB_STEPS;
   constexpr unsigned ModelPredictiveControl::STATE_SIZE;
 
-  ModelPredictiveControl::ModelPredictiveControl()
+  ModelPredictiveControl::ModelPredictiveControl(double height)
   {
     velCostMat_.setZero();
     constexpr double T = SAMPLING_PERIOD;
     double S = T * T / 2; // "square"
     double C = T * T * T / 6; // "cube"
     Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> stateMatrix;
-    stateMatrix <<
-      1, 0, T, 0, S, 0,
-      0, 1, 0, T, 0, S,
-      0, 0, 1, 0, T, 0,
-      0, 0, 0, 1, 0, T,
-      0, 0, 0, 0, 1, 0,
-      0, 0, 0, 0, 0, 1;
     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> inputMatrix;
-    inputMatrix <<
-      C, 0,
-      0, C,
-      S, 0,
-      0, S,
-      T, 0,
-      0, T;
+
+    constructStateMatrix(stateMatrix, inputMatrix, height);
+
     Eigen::VectorXd biasVector = Eigen::VectorXd::Zero(STATE_SIZE);
     initState_ = Eigen::VectorXd::Zero(STATE_SIZE);
     previewSystem_ = std::make_shared<copra::PreviewSystem>(
         stateMatrix, inputMatrix, biasVector, initState_, NB_STEPS);
     LOG_SUCCESS("Initialized new ModelPredictiveControl solver");
+  }
+
+  void constructStateMatrix(Eigen::MatrixXd & A_d, Eigen::MatrixXd & B_d, double height)
+  {
+      double omega = std::sqrt(world::GRAVITY/height );
+      double omega_inv = 1/omege; 
+      constexpr double T = SAMPLING_PERIOD;
+
+     A_d <<
+    cosh(omega*T), 0, omega_inv*cosh(omega*T ), 0, 1 - cosh(omega*T), 0, 
+    0, cosh(omega*T), 0, omega_inv*cosh(omega*T ), 0, 1 - cosh(omega*T),
+    omega*sinh(omega*T ), 0, cosh(omega*T ), 0,  - omega*sinh(omega*T ), 0, 
+    0, omega*sinh(omega*T ), 0, cosh(omega*T ), 0,  - omega*sinh(omega*T ), 0, 
+    0, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 1;
+      
+  B_d<<
+      omega_inv*(omega*T - sinh(omega*T)) , 0,
+      0, omega_inv*(omega* T - sinh(omega* T) ),  
+      1 - cosh(omega*T),  0,
+      0 ,1 - cosh(omega*T),
+      T,  0,
+      0 , T;
   }
 
   void ModelPredictiveControl::configure(const mc_rtc::Configuration & config)
@@ -229,6 +241,7 @@ namespace lipm_walking
   {
     Eigen::MatrixXd E_dcm = Eigen::MatrixXd::Zero(2, STATE_SIZE * (NB_STEPS + 1));
     Eigen::MatrixXd E_zmp = Eigen::MatrixXd::Zero(2, STATE_SIZE * (NB_STEPS + 1));
+
     if (nbTargetSupportSteps_ < 1) // half preview
     {
       unsigned i = nbInitSupportSteps_ + nbDoubleSupportSteps_;
@@ -240,8 +253,10 @@ namespace lipm_walking
       E_dcm.rightCols<6>() = dcmFromState_;
       E_zmp.rightCols<6>() = zmpFromState_;
     }
+
     Eigen::Vector2d dcmTarget = zmpRef_.tail<2>();
     Eigen::Vector2d zmpTarget = zmpRef_.tail<2>();
+
     termDCMCons_ = std::make_shared<copra::TrajectoryConstraint>(E_dcm, dcmTarget, /* isInequalityConstraint = */ false);
     termZMPCons_ = std::make_shared<copra::TrajectoryConstraint>(E_zmp, zmpTarget, /* isInequalityConstraint = */ false);
   }
@@ -338,14 +353,27 @@ namespace lipm_walking
     using namespace std::chrono;
     auto startTime = high_resolution_clock::now();
 
+    // Update the ZMP reference: ? not clear yet. 
     computeZMPRef();
 
     previewSystem_->xInit(initState_);
+
+
+    // This is the viability constraint: the final DCM = desired.
     updateTerminalConstraint();
+
+    // The feasibility constraint: ZMP within support polygon.
     updateZMPConstraint();
+
+    // Minimize the input:
     updateJerkCost();
+
+    // COM velocity reference tracking
     updateVelCost();
+
+    // ZMP reference tracking
     updateZMPCost();
+
 
     copra::LMPC lmpc(previewSystem_, solver_);
     lmpc.addConstraint(termDCMCons_);
