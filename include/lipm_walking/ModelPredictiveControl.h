@@ -71,7 +71,11 @@ namespace lipm_walking
      * \param B_d denotes the input matrix.
      * \param height denotes the z component of the COM position.
      */
-    void constructStateMatrix(Eigen::MatrixXd & A_d, Eigen::MatrixXd & B_d, double height)
+    void constructStateMatrix(
+		    Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> 
+		     & A_d, 
+		     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> 
+		     & B_d, double height);
     
     /** Add GUI panel.
      *

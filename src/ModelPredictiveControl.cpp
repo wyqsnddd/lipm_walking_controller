@@ -45,8 +45,8 @@ namespace lipm_walking
   {
     velCostMat_.setZero();
     constexpr double T = SAMPLING_PERIOD;
-    double S = T * T / 2; // "square"
-    double C = T * T * T / 6; // "cube"
+    //double S = T * T / 2; // "square"
+    //double C = T * T * T / 6; // "cube"
     Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> stateMatrix;
     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> inputMatrix;
 
@@ -58,11 +58,14 @@ namespace lipm_walking
         stateMatrix, inputMatrix, biasVector, initState_, NB_STEPS);
     LOG_SUCCESS("Initialized new ModelPredictiveControl solver");
   }
-
-  void constructStateMatrix(Eigen::MatrixXd & A_d, Eigen::MatrixXd & B_d, double height)
-  {
+void ModelPredictiveControl::constructStateMatrix(
+		    Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> 
+		     & A_d, 
+		     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> 
+		     & B_d, double height)
+{
       double omega = std::sqrt(world::GRAVITY/height );
-      double omega_inv = 1/omege; 
+      double omega_inv = 1/omega; 
       constexpr double T = SAMPLING_PERIOD;
 
      A_d <<
@@ -299,7 +302,7 @@ namespace lipm_walking
     Eigen::Matrix2d jerkMat = Eigen::Matrix2d::Identity();
     Eigen::Vector2d jerkVec = Eigen::Vector2d::Zero();
     jerkCost_ = std::make_shared<copra::ControlCost>(jerkMat, jerkVec);
-    jerkCost_->weight(jerkWeight);
+    jerkCost_->weight(jerkWeight); 
   }
 
   void ModelPredictiveControl::updateVelCost()
@@ -353,22 +356,28 @@ namespace lipm_walking
     using namespace std::chrono;
     auto startTime = high_resolution_clock::now();
 
-    // Update the ZMP reference: ? not clear yet. 
+    // Update the ZMP reference: 
+    // YQ: Keep the same as long as the zmpFromState_ is correctly calculated. 
     computeZMPRef();
 
+    // Update the initial state 
     previewSystem_->xInit(initState_);
 
 
     // This is the viability constraint: the final DCM = desired.
+    // YQ: Changed the ZMP Update function. 
     updateTerminalConstraint();
 
-    // The feasibility constraint: ZMP within support polygon.
+    // The feasibility constraint: 
+    // ZMP within support polygon. 
     updateZMPConstraint();
 
-    // Minimize the input:
+    // Minimize the input: 
+    // YQ: We keep all the names and the weights. 
     updateJerkCost();
 
-    // COM velocity reference tracking
+    // COM velocity reference tracking: 
+    // YQ: Keep the same
     updateVelCost();
 
     // ZMP reference tracking
