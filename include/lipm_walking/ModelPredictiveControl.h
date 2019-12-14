@@ -135,6 +135,14 @@ namespace lipm_walking
      */
     bool solve();
 
+    /*!
+     *  \return omega = std::sqrt(world::GRAVITY/height )
+     */
+    inline double getOmega() const
+    {
+      return omega_;
+    }
+
     /** Set CoM height.
      *
      * \param height CoM height above contacts.
@@ -142,8 +150,10 @@ namespace lipm_walking
      */
     void comHeight(double height)
     {
-      double zeta = height / world::GRAVITY;
-      double omegaInv = std::sqrt(zeta);
+
+      omega_ = std::sqrt(world::GRAVITY/height );
+      //double zeta = height / world::GRAVITY;
+      double omegaInv = 1.0/getOmega();
 
       dcmFromState_ <<
         1, 0, omegaInv, 0, 0, 0,
@@ -311,5 +321,8 @@ namespace lipm_walking
     unsigned nbInitSupportSteps_;
     unsigned nbNextDoubleSupportSteps_;
     unsigned nbTargetSupportSteps_;
+
+    double omega_; /**< constant: std::sqrt(world::GRAVITY/height ) */
+
   };
 }

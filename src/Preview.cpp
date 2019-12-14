@@ -72,10 +72,24 @@ namespace lipm_walking
 
   void Preview::integratePlayback(Pendulum & pendulum, double dt)
   {
+
+
+    Eigen::VectorXd playState = stateTraj_.segment<STATE_SIZE>(STATE_SIZE * playbackStep_);
+
+    double omega_square = pow(getOmega(), 2); 
+
     Eigen::Vector3d comddd;
-    comddd.head<INPUT_SIZE>() = inputTraj_.segment<INPUT_SIZE>(INPUT_SIZE * playbackStep_);
+
+    Eigen::VectorXd comd = playState.segment<2>(2);
+ 
+    Eigen::VectorXd zmpd = inputTraj_.segment<INPUT_SIZE>(INPUT_SIZE * playbackStep_);
+
+    comddd.head<INPUT_SIZE>() = omega_square*(comd - zmpd);
+    //comddd.head<INPUT_SIZE>() = inputTraj_.segment<INPUT_SIZE>(INPUT_SIZE * playbackStep_);
+
     comddd.z() = 0.;
     playbackTime_ += dt;
+
     if (playbackTime_ >= (playbackStep_ + 1) * SAMPLING_PERIOD)
     {
       playbackStep_++;

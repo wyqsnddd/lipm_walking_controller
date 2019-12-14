@@ -65,8 +65,9 @@ void ModelPredictiveControl::constructStateMatrix(
 		     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> 
 		     & B_d, double height)
 {
-      double omega = std::sqrt(world::GRAVITY/height );
-      double omega_inv = 1.0/omega; 
+      //omega_ = std::sqrt(world::GRAVITY/height );
+      double omega = getOmega();
+      double omega_inv = 1.0/getOmega(); 
       constexpr double T = SAMPLING_PERIOD;
       // clang-format off
       A_d <<
@@ -396,6 +397,7 @@ void ModelPredictiveControl::constructStateMatrixEuler(
     computeZMPRef();
 
     // Update the initial state 
+    // YQ: Include zmp as the state. 
     previewSystem_->xInit(initState_);
 
 
@@ -431,6 +433,7 @@ void ModelPredictiveControl::constructStateMatrixEuler(
     if (solutionFound)
     {
       solution_.reset(new Preview(lmpc.trajectory(), lmpc.control()));
+      solution_->setOmega(getOmega());
     }
     else
     {

@@ -99,7 +99,16 @@ namespace lipm_walking
       return playbackTime_;
     }
 
+    inline const double &  getOmega()
+    {
+      return omega_; 
+    }
+    inline void setOmega(const double & omega) 
+    {
+      omega_ = omega; 
+    }
   private:
+    double omega_ = 0.0;
     Eigen::VectorXd inputTraj_; /**< Stacked vector of input trajectory */
     Eigen::VectorXd stateTraj_; /**< Stacked vector of state trajectory */
     double playbackTime_ = 0.; /**< Current time in the preview window */
