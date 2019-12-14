@@ -77,6 +77,17 @@ namespace lipm_walking
 		     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> 
 		     & B_d, double height);
     
+    /*!
+     * \param A_d denotes the state matrix.
+     * \param B_d denotes the input matrix.
+     * \param height denotes the z component of the COM position.
+     */
+    void constructStateMatrixEuler(
+		    Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> 
+		     & A_d, 
+		     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> 
+		     & B_d, double height);
+ 
     /** Add GUI panel.
      *
      * \param gui GUI handle.
@@ -146,7 +157,7 @@ namespace lipm_walking
       Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> stateMatrix;
       Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> inputMatrix;
 
-      constructStateMatrix(stateMatrix, inputMatrix, height);
+      constructStateMatrixEuler(stateMatrix, inputMatrix, height);
 
       previewSystem_->A = stateMatrix; 
       previewSystem_->B = inputMatrix; 

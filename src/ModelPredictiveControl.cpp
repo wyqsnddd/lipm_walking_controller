@@ -50,7 +50,7 @@ namespace lipm_walking
     Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> stateMatrix;
     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> inputMatrix;
 
-    constructStateMatrix(stateMatrix, inputMatrix, height);
+    constructStateMatrixEuler(stateMatrix, inputMatrix, height);
 
     Eigen::VectorXd biasVector = Eigen::VectorXd::Zero(STATE_SIZE);
     initState_ = Eigen::VectorXd::Zero(STATE_SIZE);
@@ -58,6 +58,7 @@ namespace lipm_walking
         stateMatrix, inputMatrix, biasVector, initState_, NB_STEPS);
     LOG_SUCCESS("Initialized new ModelPredictiveControl solver");
   }
+
 void ModelPredictiveControl::constructStateMatrix(
 		    Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> 
 		     & A_d, 
@@ -65,7 +66,7 @@ void ModelPredictiveControl::constructStateMatrix(
 		     & B_d, double height)
 {
       double omega = std::sqrt(world::GRAVITY/height );
-      double omega_inv = 1/omega; 
+      double omega_inv = 1.0/omega; 
       constexpr double T = SAMPLING_PERIOD;
       // clang-format off
       A_d <<
@@ -86,6 +87,38 @@ void ModelPredictiveControl::constructStateMatrix(
 
       // clang-format on 
   }
+
+void ModelPredictiveControl::constructStateMatrixEuler(
+		    Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> 
+		     & A_d, 
+		     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> 
+		     & B_d, double height)
+{
+      double omega = std::sqrt(world::GRAVITY/height );
+      constexpr double T = SAMPLING_PERIOD;
+      double omega_2_T = omega*omega*T;
+      //double omega_inv = 1/omega; 
+      
+      // clang-format off
+      A_d <<
+       1,          0,      T,     0,  0,            0, 
+       0,          1,      0,     T,  0,            0,
+       omega_2_T,  0,      1,     0,  - omega_2_T,  0, 
+       0,  omega_2_T,      0,     1 , 0,       - omega_2_T,    
+       0, 	   0, 	   0,     0,  1,            0,
+       0,  	   0, 	   0,     0,  0,            1;
+
+     B_d<<
+      0 , 0,
+      0, 0,  
+      0,  0,
+      0 , 0,
+      T,  0,
+      0 , T;
+
+      // clang-format on 
+  }
+
 
   void ModelPredictiveControl::configure(const mc_rtc::Configuration & config)
   {
