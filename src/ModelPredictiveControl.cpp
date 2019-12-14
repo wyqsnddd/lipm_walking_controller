@@ -67,22 +67,24 @@ void ModelPredictiveControl::constructStateMatrix(
       double omega = std::sqrt(world::GRAVITY/height );
       double omega_inv = 1/omega; 
       constexpr double T = SAMPLING_PERIOD;
-
-     A_d <<
-    cosh(omega*T), 0, omega_inv*cosh(omega*T ), 0, 1 - cosh(omega*T), 0, 
-    0, cosh(omega*T), 0, omega_inv*cosh(omega*T ), 0, 1 - cosh(omega*T),
-    omega*sinh(omega*T ), 0, cosh(omega*T ), 0,  - omega*sinh(omega*T ), 0, 
-    0, omega*sinh(omega*T ), 0, cosh(omega*T ), 0,  - omega*sinh(omega*T ), 0, 
+      // clang-format off
+      A_d <<
+    cosh(omega*T),         0, omega_inv*sinh(omega*T ),                         0,      1 - cosh(omega*T),   0, 
+    0,         cosh(omega*T),                        0,  omega_inv*sinh(omega*T ),      0,   1 - cosh(omega*T),
+    omega*sinh(omega*T ),  0,           cosh(omega*T ),                         0,  -omega*sinh(omega*T ),   0, 
+    0,  omega*sinh(omega*T ),                        0,            cosh(omega*T ),   0,  -omega*sinh(omega*T ),    
     0, 0, 0, 0, 1, 0,
     0, 0, 0, 0, 0, 1;
-      
-  B_d<<
+
+     B_d<<
       omega_inv*(omega*T - sinh(omega*T)) , 0,
       0, omega_inv*(omega* T - sinh(omega* T) ),  
       1 - cosh(omega*T),  0,
       0 ,1 - cosh(omega*T),
       T,  0,
       0 , T;
+
+      // clang-format on 
   }
 
   void ModelPredictiveControl::configure(const mc_rtc::Configuration & config)
