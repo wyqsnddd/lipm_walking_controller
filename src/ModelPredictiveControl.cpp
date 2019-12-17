@@ -44,13 +44,17 @@ namespace lipm_walking
   ModelPredictiveControl::ModelPredictiveControl(double height)
   {
     velCostMat_.setZero();
+    velRef_.setZero();
+    zmpRef_.setZero();
+
     constexpr double T = SAMPLING_PERIOD;
     //double S = T * T / 2; // "square"
     //double C = T * T * T / 6; // "cube"
     Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> stateMatrix;
     Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> inputMatrix;
 
-    constructStateMatrixEuler(stateMatrix, inputMatrix, height);
+    constructStateMatrix(stateMatrix, inputMatrix, height);
+    //constructStateMatrixEuler(stateMatrix, inputMatrix, height);
 
     Eigen::VectorXd biasVector = Eigen::VectorXd::Zero(STATE_SIZE);
     initState_ = Eigen::VectorXd::Zero(STATE_SIZE);

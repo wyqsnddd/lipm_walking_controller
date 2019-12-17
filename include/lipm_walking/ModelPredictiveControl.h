@@ -167,7 +167,8 @@ namespace lipm_walking
       Eigen::Matrix<double, STATE_SIZE, STATE_SIZE> stateMatrix;
       Eigen::Matrix<double, STATE_SIZE, INPUT_SIZE> inputMatrix;
 
-      constructStateMatrixEuler(stateMatrix, inputMatrix, height);
+      constructStateMatrix(stateMatrix, inputMatrix, height);
+      //constructStateMatrixEuler(stateMatrix, inputMatrix, height);
 
       previewSystem_->A = stateMatrix; 
       previewSystem_->B = inputMatrix; 
